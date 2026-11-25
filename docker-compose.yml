@@ -1,0 +1,41 @@
+name: oracle-tuning-monitor
+
+services:
+  oracle-db:
+    image: gvenzl/oracle-free:23-slim
+    container_name: oracle-db
+    environment:
+      ORACLE_PASSWORD: ${ORACLE_PWD:-OraclePwd_2025}   # senha do SYS/SYSTEM
+      ERP_PWD: ${ERP_PWD:-ErpDba_2025}                 # senha do usuário ERP_DBA (criado no init)
+    ports:
+      - "1522:1521"
+    volumes:
+      - oracle_data:/opt/oracle/oradata                       # persistência dos dados
+      - ./docker/initdb:/container-entrypoint-initdb.d:ro     # executado na 1ª inicialização
+      - ./sql:/sql-scripts:ro                                 # scripts SQL usados pelo init
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 15s
+      timeout: 10s
+      retries: 120
+      start_period: 60s
+
+  app:
+    build: .
+    container_name: python-app
+    depends_on:
+      oracle-db:
+        condition: service_healthy
+    environment:
+      DB_USER: erp_dba
+      DB_PASSWORD: ${ERP_PWD:-ErpDba_2025}
+      DB_DSN: oracle-db:1521/FREEPDB1
+      SQL_DIR: /sql
+      REPORTS_DIR: /reports
+    volumes:
+      - ./sql:/sql:ro
+      - ./reports:/reports
+    command: ["sleep", "infinity"]
+
+volumes:
+  oracle_data:

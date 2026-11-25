@@ -1,0 +1,4 @@
+oracledb>=2.5,<4
+Faker>=25,<40
+rich>=13.7,<15
+tabulate>=0.9,<1
